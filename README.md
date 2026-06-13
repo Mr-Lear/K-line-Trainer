@@ -19,13 +19,13 @@
 
 ### 在线访问
 
-打开 [https://gmo99.github.io/K-line-Trainer/](https://gmo99.github.io/K-line-Trainer/)
+打开 [https://Mr-Lear.github.io/K-line-Trainer/](https://Mr-Lear.github.io/K-line-Trainer/)
 
 ### 本地运行
 
 ```bash
 # 克隆仓库
-git clone https://github.com/gmo99/K-line-Trainer.git
+git clone https://github.com/Mr-Lear/K-line-Trainer.git
 
 # 直接用浏览器打开 index.html
 # 或使用任意 HTTP 服务器 (例如 Python)
