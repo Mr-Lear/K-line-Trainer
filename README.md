@@ -36,7 +36,7 @@ python -m http.server 8000
 ## 技术栈
 
 - 纯前端静态页面 (HTML + CSS + JavaScript)
-- [ECharts](https://echarts.apache.org/) — 交互式图表
+- [ECharts](https://echarts.apache.org/) 
 - 东方财富开放 API — 实时股票数据
 - 适配桌面端和移动端
 
