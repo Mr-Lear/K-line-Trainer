@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A股 K线训练器</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js">
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: #0f1923;
+            color: #e0e6ed;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 20px 16px;
+        }
+
+        /* ===== Header ===== */
+        header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 20px 0 10px;
+            border-bottom: 1px solid #1e2d3d;
+        }
+
+        .logo {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #f39c12, #e74c3c);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 18px;
+            color: #fff;
+            flex-shrink: 0;
+        }
+
+        header h1 {
+            font-size: 22px;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+
+        header h1 small {
+            font-size: 13px;
+            font-weight: 400;
+            color: #7f8c9b;
+            margin-left: 10px;
+        }
+
+        /* ===== Search Bar ===== */
+        .search-section {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 18px;
+            align-items: center;
+        }
+
+        .search-section label {
+            font-size: 14px;
+            color: #9aaec2;
+        }
+
+        .search-section input {
+            flex: 0 1 160px;
+            padding: 10px 14px;
+            border: 1px solid #2a3a4a;
+            border-radius: 8px;
+            background: #162230;
+            color: #e0e6ed;
+            font-size: 16px;
+            letter-spacing: 1px;
+            outline: none;
+            transition: border-color 0.25s;
+        }
+
+        .search-section input:focus {
+            border-color: #3b82f6;
+        }
+
+        .search-section input::placeholder {
+            color: #4a5a6a;
+            letter-spacing: 0;
+            font-size: 13px;
+        }
+
+        .btn {
+            padding: 10px 22px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .btn:active {
+            transform: scale(0.96);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #60a5fa, #3b82f6);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-shuffle {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: #fff;
+        }
+
+        .btn-shuffle:hover {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+        }
+
+        .btn-shuffle:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .hint {
+            font-size: 12px;
+            color: #5a6a7a;
+            margin-left: 4px;
+        }
+
+        /* ===== Info Card ===== */
+        .info-card {
+            display: none;
+            margin-top: 18px;
+            padding: 16px 20px;
+            background: #162230;
+            border: 1px solid #1e2d3d;
+            border-radius: 12px;
+            gap: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .info-card.visible {
+            display: flex;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .info-item .label {
+            font-size: 11px;
+            color: #5a6a7a;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .info-item .value {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .info-item .value.code-highlight {
+            color: #f59e0b;
+        }
+
+        .info-item .value.up {
+            color: #ef4444;
+        }
+        .info-item .value.down {
+            color: #22c55e;
+        }
+
+        .info-item .value.amount {
+            font-size: 22px;
+        }
+
+        /* ===== Chart ===== */
+        .chart-wrapper {
+            margin-top: 18px;
+            background: #0d1a26;
+            border: 1px solid #1e2d3d;
+            border-radius: 12px;
+            padding: 8px;
+            position: relative;
+        }
+
+        #chart {
+            width: 100%;
+            height: 560px;
+        }
+
+        /* ===== Status ===== */
+        .status {
+            margin-top: 12px;
+            font-size: 13px;
+            color: #7f8c9b;
+            min-height: 20px;
+            text-align: center;
+        }
+
+        .status.error {
+            color: #ef4444;
+        }
+        .status.success {
+            color: #22c55e;
+        }
+
+        /* ===== Footer ===== */
+        footer {
+            margin-top: 40px;
+            padding: 16px 0;
+            border-top: 1px solid #1e2d3d;
+            text-align: center;
+            font-size: 12px;
+            color: #4a5a6a;
+        }
+
+        footer a {
+            color: #5a7a9a;
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            color: #3b82f6;
+        }
+
+        /* ===== Responsive ===== */
+        @media (max-width: 640px) {
+            .container {
+                padding: 12px 10px;
+            }
+            header h1 {
+                font-size: 17px;
+            }
+            header h1 small {
+                display: block;
+                margin-left: 0;
+                margin-top: 2px;
+            }
+            .search-section input {
+                flex: 1 1 100%;
+            }
+            #chart {
+                height: 400px;
+            }
+            .info-card {
+                padding: 12px 14px;
+                gap: 12px;
+            }
+            .info-item .value.amount {
+                font-size: 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+
+        <!-- Header -->
+        <header>
+            <div class="logo">K</div>
+            <h1>
+                A股 K线训练器
+                <small>5 分钟分时 · 随机回测</small>
+            </h1>
+        </header>
+
+        <!-- Search -->
+        <div class="search-section">
+            <label for="codeInput">股票代码</label>
+            <input type="text" id="codeInput" placeholder="例: 600036" maxlength="6" autofocus>
+            <button class="btn btn-primary" id="queryBtn">查 询</button>
+            <button class="btn btn-shuffle" id="shuffleBtn">🎲 随机日期</button>
+            <span class="hint">输入 6 位代码后点击查询，或直接使用随机日期</span>
+        </div>
+
+        <!-- Info Card -->
+        <div class="info-card" id="infoCard">
+            <div class="info-item">
+                <span class="label">股票</span>
+                <span class="value code-highlight" id="stockName">--</span>
+            </div>
+            <div class="info-item">
+                <span class="label">交易日期</span>
+                <span class="value" id="tradeDate">--</span>
+            </div>
+            <div class="info-item">
+                <span class="label">开盘</span>
+                <span class="value" id="openVal">--</span>
+            </div>
+            <div class="info-item">
+                <span class="label">收盘</span>
+                <span class="value" id="closeVal">--</span>
+            </div>
+            <div class="info-item">
+                <span class="label">最高</span>
+                <span class="value up" id="highVal">--</span>
+            </div>
+            <div class="info-item">
+                <span class="label">最低</span>
+                <span class="value down" id="lowVal">--</span>
+            </div>
+            <div class="info-item">
+                <span class="label">涨幅</span>
+                <span class="value" id="changeVal">--</span>
+            </div>
+            <div class="info-item">
+                <span class="label">成交额</span>
+                <span class="value amount" id="amountVal">--</span>
+            </div>
+        </div>
+
+        <!-- Chart -->
+        <div class="chart-wrapper">
+            <div id="chart"></div>
+        </div>
+
+        <!-- Status -->
+        <div class="status" id="status">等待输入股票代码...</div>
+
+        <!-- Footer -->
+        <footer>
+            数据来源：<a href="https://push2his.eastmoney.com/" target="_blank" rel="noopener">东方财富</a> ·
+            仅供学习参考，不构成投资建议 ·
+            <a href="https://github.com/gmo99/K-line-Trainer" target="_blank" rel="noopener">GitHub</a>
+        </footer>
+
+    </div>
+
+    <script>
+        // ============================================================
+        //  Configuration
+        // ============================================================
+        const CONFIG = {
+            KLINE_API: 'https://push2his.eastmoney.com/api/qt/stock/kline/get',
+            STOCK_INFO_API: 'https://push2.eastmoney.com/api/qt/stock/get',
+            MAX_RETRIES: 10, // 随机日期时最多尝试的天数
+            KLINE_LIMIT: 10000, // 一次拉取的 K 线数量
+            THREE_YEARS_MS: 3 * 365 * 24 * 60 * 60 * 1000,
+        };
+
+        // ============================================================
+        //  DOM refs
+        // ============================================================
+        const $ = (s) => document.querySelector(s);
+        const codeInput = $('#codeInput');
+        const queryBtn = $('#queryBtn');
+        const shuffleBtn = $('#shuffleBtn');
+        const infoCard = $('#infoCard');
+        const statusEl = $('#status');
+        const chartDom = $('#chart');
+
+        const stockNameEl = $('#stockName');
+        const tradeDateEl = $('#tradeDate');
+        const openValEl = $('#openVal');
+        const closeValEl = $('#closeVal');
+        const highValEl = $('#highVal');
+        const lowValEl = $('#lowVal');
+        const changeValEl = $('#changeVal');
+        const amountValEl = $('#amountVal');
+
+        // ============================================================
+        //  ECharts
+        // ============================================================
+        let myChart = echarts.init(chartDom, 'dark');
+        window.addEventListener('resize', () => myChart.resize());
+
+        // ============================================================
+        //  Utility
+        // ============================================================
+        function getMarket(code) {
+            const c = code.trim();
+            if (/^6/.test(c)) return 1; // 沪市
+            if (/^[03]/.test(c)) return 0; // 深市（主板/创业板）
+            if (/^[48]/.test(c)) return 0; // 北交所/科创板
+            return 1;
+        }
+
+        function cleanCode(raw) {
+            return raw.replace(/^(sh|sz|bj)/i, '').trim();
+        }
+
+        function formatDate(d) {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}${m}${day}`;
+        }
+
+        function isWeekend(d) {
+            return d.getDay() === 0 || d.getDay() === 6;
+        }
+
+        function randomWeekday() {
+            const now = new Date();
+            const start = new Date(now.getTime() - CONFIG.THREE_YEARS_MS);
+            for (let i = 0; i < 50; i++) {
+                const ts = start.getTime() + Math.random() * (now.getTime() - start.getTime());
+                const d = new Date(ts);
+                if (!isWeekend(d)) return d;
+            }
+            return new Date(); // fallback
+        }
+
+        // ============================================================
+        //  APIs
+        // ============================================================
+
+        /** 获取股票名称 */
+        async function fetchStockName(stockCode) {
+            const market = getMarket(stockCode);
+            const url =
+                `${CONFIG.STOCK_INFO_API}?secid=${market}.${stockCode}&fields=f12,f14&_=${Date.now()}`;
+            const resp = await fetch(url);
+            const json = await resp.json();
+            if (json.data && json.data.f14) {
+                return json.data.f14;
+            }
+            return stockCode;
+        }
+
+        /** 获取 5 分钟 K 线数据（最近 N 条） */
+        async function fetchKLine(stockCode) {
+            const market = getMarket(stockCode);
+            const url =
+                `${CONFIG.KLINE_API}?secid=${market}.${stockCode}` +
+                `&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61` +
+                `&klt=5&fqt=1&lmt=${CONFIG.KLINE_LIMIT}&_=${Date.now()}`;
+
+            const resp = await fetch(url);
+            const json = await resp.json();
+
+            if (!json.data || !json.data.klines || json.data.klines.length === 0) {
+                throw new Error('未获取到 K 线数据，请检查股票代码是否正确');
+            }
+
+            // 解析 K 线字符串
+            // 字段顺序: f51时间, f52开盘, f53收盘, f54最高, f55最低, f56成交量, f57成交额, f58振幅, f59涨跌幅, f60涨跌额, f61换手率
+            return json.data.klines.map((k) => {
+                const p = k.split(',');
+                const time = p[0];
+                const open = parseFloat(p[1]);
+                const close = parseFloat(p[2]);
+                const high = parseFloat(p[3]);
+                const low = parseFloat(p[4]);
+                const volume = parseFloat(p[5]) || 0;
+                const amount = parseFloat(p[6]) || 0;
+                const changePct = parseFloat(p[8]) || 0;
+                return { time, open, close, high, low, volume, amount, changePct };
+            });
+        }
+
+        /** 按日期分组 */
+        function groupByDate(data) {
+            const map = {};
+            for (const item of data) {
+                const date = item.time.slice(0, 10); // 'YYYY-MM-DD'
+                if (!map[date]) map[date] = [];
+                map[date].push(item);
+            }
+            return map;
+        }
+
+        /** 随机选择一组（一个交易日） */
+        function pickRandomDay(grouped) {
+            const dates = Object.keys(grouped).sort();
+            if (dates.length === 0) return null;
+            const date = dates[Math.floor(Math.random() * dates.length)];
+            return { date, bars: grouped[date] };
+        }
+
+        // ============================================================
+        //  Rendering
+        // ============================================================
+
+        function renderChart(bars, stockCode, date) {
+            const times = bars.map(b => b.time.slice(11, 16)); // HH:mm
+            const ohlc = bars.map(b => [b.open, b.close, b.low, b.high]);
+            const volumes = bars.map(b => b.volume);
+            const amounts = bars.map(b => b.amount);
+            const maxVol = Math.max(...volumes);
+
+            const option = {
+                backgroundColor: 'transparent',
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: { type: 'cross' },
+                    backgroundColor: '#1a2d3d',
+                    borderColor: '#2a4a6a',
+                    textStyle: { color: '#e0e6ed', fontSize: 12 },
+                    formatter: function(params) {
+                        const k = params.find(p => p.seriesName === 'K线');
+                        const v = params.find(p => p.seriesName === '成交量');
+                        if (!k) return '';
+                        const idx = k.dataIndex;
+                        const bar = bars[idx];
+                        const volStr = bar.volume >= 1e8 ?
+                            (bar.volume / 1e8).toFixed(2) + '亿' :
+                            (bar.volume / 1e4).toFixed(0) + '万';
+                        const amtStr = bar.amount >= 1e8 ?
+                            (bar.amount / 1e8).toFixed(2) + '亿' :
+                            (bar.amount / 1e4).toFixed(0) + '万';
+                        const color = bar.close >= bar.open ? '#ef4444' : '#22c55e';
+                        return `
+                            <div style="font-weight:600;margin-bottom:4px;">${bar.time}</div>
+                            <div>开: <span style="color:${color}">${bar.open.toFixed(2)}</span></div>
+                            <div>收: <span style="color:${color}">${bar.close.toFixed(2)}</span></div>
+                            <div>高: <span style="color:#60a5fa">${bar.high.toFixed(2)}</span></div>
+                            <div>低: <span style="color:#60a5fa">${bar.low.toFixed(2)}</span></div>
+                            <div>成交量: ${volStr}</div>
+                            <div>成交额: ${amtStr}</div>
+                            <div>涨幅: <span style="color:${color}">${bar.changePct > 0 ? '+' : ''}${bar.changePct.toFixed(2)}%</span></div>
+                        `;
+                    },
+                },
+                grid: [
+                    { left: '6%', right: '6%', top: 50, height: '58%' },
+                    { left: '6%', right: '6%', top: '78%', height: '14%' },
+                ],
+                xAxis: [{
+                    type: 'category',
+                    data: times,
+                    boundaryGap: true,
+                    axisLine: { lineStyle: { color: '#1e2d3d' } },
+                    axisLabel: {
+                        color: '#5a6a7a',
+                        fontSize: 11,
+                        interval: Math.max(0, Math.floor(times.length / 8) - 1),
+                    },
+                    splitLine: { show: false },
+                    gridIndex: 0,
+                }, {
+                    type: 'category',
+                    data: times,
+                    boundaryGap: true,
+                    axisLine: { show: false },
+                    axisLabel: { show: false },
+                    splitLine: { show: false },
+                    gridIndex: 1,
+                }],
+                yAxis: [{
+                    scale: true,
+                    gridIndex: 0,
+                    splitNumber: 4,
+                    axisLine: { lineStyle: { color: '#1e2d3d' } },
+                    axisLabel: { color: '#5a6a7a', fontSize: 11 },
+                    splitLine: {
+                        lineStyle: { color: '#1a2a3a', type: 'dashed' },
+                    },
+                }, {
+                    scale: true,
+                    gridIndex: 1,
+                    splitNumber: 2,
+                    axisLabel: { show: true, color: '#5a6a7a', fontSize: 10 },
+                    axisLine: { show: false },
+                    splitLine: { show: false },
+                }],
+                dataZoom: [{
+                    type: 'inside',
+                    xAxisIndex: [0, 1],
+                    start: 0,
+                    end: 100,
+                }],
+                series: [{
+                    name: 'K线',
+                    type: 'candlestick',
+                    data: ohlc,
+                    xAxisIndex: 0,
+                    yAxisIndex: 0,
+                    itemStyle: {
+                        color: '#ef4444',
+                        color0: '#22c55e',
+                        borderColor: '#ef4444',
+                        borderColor0: '#22c55e',
+                    },
+                    markLine: {
+                        silent: true,
+                        symbol: 'none',
+                        lineStyle: { color: '#3b82f6', type: 'dashed', width: 1 },
+                        data: [{
+                            type: 'average',
+                            name: '均价',
+                            label: {
+                                formatter: '均价: {c}',
+                                color: '#3b82f6',
+                                fontSize: 11,
+                                position: 'insideEndTop',
+                            },
+                        }],
+                    },
+                }, {
+                    name: '成交量',
+                    type: 'bar',
+                    data: volumes,
+                    xAxisIndex: 1,
+                    yAxisIndex: 1,
+                    itemStyle: {
+                        color: function(params) {
+                            const idx = params.dataIndex;
+                            return bars[idx].close >= bars[idx].open ?
+                                'rgba(239,68,68,0.6)' :
+                                'rgba(34,197,94,0.6)';
+                        },
+                    },
+                }, ],
+            };
+
+            myChart.setOption(option, true);
+        }
+
+        function updateInfoCard(bars, stockCode, stockName) {
+            const first = bars[0];
+            const last = bars[bars.length - 1];
+            const date = first.time.slice(0, 10);
+
+            const opens = bars.map(b => b.open);
+            const highs = bars.map(b => b.high);
+            const lows = bars.map(b => b.low);
+
+            const open = first.open;
+            const close = last.close;
+            const high = Math.max(...highs);
+            const low = Math.min(...lows);
+            const changePct = ((close - open) / open * 100);
+            const totalAmount = bars.reduce((s, b) => s + b.amount, 0);
+
+            stockNameEl.textContent = `${stockName} (${stockCode})`;
+            tradeDateEl.textContent = date;
+
+            openValEl.textContent = open.toFixed(2);
+            closeValEl.textContent = close.toFixed(2);
+            highValEl.textContent = high.toFixed(2);
+            lowValEl.textContent = low.toFixed(2);
+
+            const cls = changePct >= 0 ? 'up' : 'down';
+            const sign = changePct >= 0 ? '+' : '';
+            changeValEl.textContent = `${sign}${changePct.toFixed(2)}%`;
+            changeValEl.className = `value ${cls}`;
+
+            const amtStr = totalAmount >= 1e8 ?
+                (totalAmount / 1e8).toFixed(2) + ' 亿' :
+                (totalAmount / 1e4).toFixed(0) + ' 万';
+            amountValEl.textContent = amtStr;
+
+            infoCard.classList.add('visible');
+        }
+
+        function setStatus(msg, type) {
+            statusEl.textContent = msg;
+            statusEl.className = 'status' + (type ? ' ' + type : '');
+        }
+
+        // ============================================================
+        //  Main Logic
+        // ============================================================
+
+        let cachedData = null; // 缓存最近一次获取的完整K线数据
+
+        async function doQuery(stockCode, useRandomDate) {
+            // 禁止按钮
+            queryBtn.disabled = true;
+            shuffleBtn.disabled = true;
+            setStatus('正在获取数据...');
+
+            try {
+                const code = cleanCode(stockCode);
+                if (!/^\d{6}$/.test(code)) {
+                    setStatus('❌ 请输入 6 位股票代码', 'error');
+                    queryBtn.disabled = false;
+                    shuffleBtn.disabled = false;
+                    return;
+                }
+
+                // 1) 获取股票名称
+                setStatus('正在获取股票信息...');
+                let stockName;
+                try {
+                    stockName = await fetchStockName(code);
+                } catch (_) {
+                    stockName = code;
+                }
+
+                // 2) 获取 K 线数据
+                setStatus('正在获取 K 线数据...');
+                let allData;
+                try {
+                    allData = await fetchKLine(code);
+                } catch (err) {
+                    setStatus(`❌ ${err.message}`, 'error');
+                    queryBtn.disabled = false;
+                    shuffleBtn.disabled = false;
+                    return;
+                }
+
+                cachedData = allData;
+
+                // 3) 按日期分组
+                const grouped = groupByDate(allData);
+                const dates = Object.keys(grouped).sort();
+
+                if (dates.length === 0) {
+                    setStatus('❌ 该股票没有找到任何交易日数据', 'error');
+                    queryBtn.disabled = false;
+                    shuffleBtn.disabled = false;
+                    return;
+                }
+
+                // 4) 选择日期
+                let targetDate;
+                if (useRandomDate) {
+                    // 随机选一个日期
+                    targetDate = dates[Math.floor(Math.random() * dates.length)];
+                } else {
+                    // 用户手动查询：默认选最新的一个完整交易日
+                    targetDate = dates[dates.length - 1];
+                }
+
+                const bars = grouped[targetDate];
+
+                // 5) 渲染
+                renderChart(bars, code, targetDate);
+                updateInfoCard(bars, code, stockName);
+                setStatus(`✅ 已展示 ${targetDate} 的 5 分钟 K 线数据（${bars.length} 根 K 线）`, 'success');
+
+            } catch (err) {
+                setStatus(`❌ 请求异常: ${err.message}`, 'error');
+            } finally {
+                queryBtn.disabled = false;
+                shuffleBtn.disabled = false;
+            }
+        }
+
+        // ============================================================
+        //  Event Handlers
+        // ============================================================
+
+        queryBtn.addEventListener('click', () => {
+            const code = codeInput.value.trim() || '600036';
+            doQuery(code, false);
+        });
+
+        shuffleBtn.addEventListener('click', () => {
+            const code = codeInput.value.trim() || '600036';
+            doQuery(code, true);
+        });
+
+        codeInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                queryBtn.click();
+            }
+        });
+
+        // 输入框只允许数字
+        codeInput.addEventListener('input', () => {
+            codeInput.value = codeInput.value.replace(/\D/g, '').slice(0, 6);
+        });
+
+        // ============================================================
+        //  Bootstrap (首次加载自动运行)
+        // ============================================================
+        codeInput.value = '600036';
+        doQuery('600036', true);
+    </script>
+
+</body>
+</html>
