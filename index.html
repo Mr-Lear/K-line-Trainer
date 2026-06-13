@@ -87,8 +87,9 @@ Data from <a href="https://push2his.eastmoney.com/" target="_blank" rel="noopene
 
 <script>
 // Config
-var KLINE_API="https://push2his.eastmoney.com/api/qt/stock/kline/get";
-var KLINE_LIMIT=800;
+var KLINE_API_EM="https://push2his.eastmoney.com/api/qt/stock/kline/get";
+var KLINE_API_SINA="https://money.finance.sina.com.cn/quotes_service/api/json_v2.php/CN_MarketData.getKLineData";
+var KLINE_LIMIT=5000;
 
 // Name map (fallback)
 var NAMES={"600036":"CM Bank","600519":"Kweichow Moutai","002594":"BYD","000333":"Midea Group","300750":"CATL","601318":"Ping An","000001":"Ping An Bank","600900":"Yangtze Power","000858":"Wuliangye"};
@@ -103,24 +104,60 @@ var ove=document.getElementById("openVal"),cve=document.getElementById("closeVal
 var mc=echarts.init(document.getElementById("chart"),"dark");
 window.addEventListener("resize",function(){mc.resize()});
 
-// API
-async function fk(c){
-var m=/^6/.test(c)?1:0;
-var u=KLINE_API+"?secid="+m+"."+c+"&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61&klt=5&fqt=1&lmt="+KLINE_LIMIT;
-var r=await fetch(u);if(!r.ok)throw new Error("HTTP "+r.status);
-var j=await r.json();if(!j.data||!j.data.klines||!j.data.klines.length)throw new Error("No data");
-return j.data.klines.map(function(k){var p=k.split(",");return{time:p[0],open:+p[1],close:+p[2],high:+p[3],low:+p[4],volume:+p[5]||0};});
-}
+// Helpers
+function fmtDate(d){return d.getFullYear()+("0"+(d.getMonth()+1)).slice(-2)+("0"+d.getDate()).slice(-2)}
 function gbd(d){var m={};for(var i=0;i<d.length;i++){var dt=d[i].time.slice(0,10);if(!m[dt])m[dt]=[];m[dt].push(d[i])}return m}
 function fm(n){if(n>=1e8)return(n/1e8).toFixed(2)+"B";if(n>=1e4)return(n/1e4).toFixed(0)+"W";return n.toFixed(0)}
 
-async function dq(raw,rd){
+// JSONP helper - bypasses CORS by loading a script tag
+function jsonp(url,cbParam,timeout){
+  return new Promise(function(resolve,reject){
+    var cb="_cb_"+Math.random().toString(36).slice(2,10);
+    var sep=url.indexOf("?")===-1?"?":"&";
+    var t;
+    function clean(){if(t)clearTimeout(t);delete window[cb]}
+    window[cb]=function(data){clean();resolve(data)};
+    var s=document.createElement("script");
+    s.onerror=function(){clean();reject(new Error("Network error"))};
+    s.src=url+sep+cbParam+"="+cb;
+    document.head.appendChild(s);
+    t=setTimeout(function(){clean();reject(new Error("Timeout"))},timeout||15000);
+  });
+}
+
+// Fetch from EastMoney (JSONP)
+function fk(c){
+  var m=/^6/.test(c)?1:0;
+  var now=new Date();
+  var beg=new Date(now);beg.setFullYear(beg.getFullYear()-3);
+  var u=KLINE_API_EM+"?secid="+m+"."+c+"&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61&klt=5&fqt=1&beg="+fmtDate(beg)+"&end="+fmtDate(now)+"&lmt="+KLINE_LIMIT;
+  return jsonp(u,"cb",20000).then(function(j){
+    if(j&&j.data&&j.data.klines&&j.data.klines.length)return j.data.klines.map(function(k){var p=k.split(",");return{time:p[0],open:+p[1],close:+p[2],high:+p[3],low:+p[4],volume:+p[5]||0};});
+    throw new Error("EM empty");
+  });
+}
+
+// Fallback: Sina Finance API (JSONP)
+function fkSina(c){
+  var prefix=/^6/.test(c)?"sh":"sz";
+  var u=KLINE_API_SINA+"?symbol="+prefix+c+"&scale=5&ma=no&datalen=5000";
+  return jsonp(u,"callback",20000).then(function(j){
+    if(Array.isArray(j)&&j.length)return j.map(function(k){return{time:k.day,open:+k.open,close:+k.close,high:+k.high,low:+k.low,volume:+k.volume||0};});
+    throw new Error("Sina empty");
+  });
+}
+
+// Try EastMoney first, fallback to Sina
+function fetchData(c){return fk(c).catch(function(){return fkSina(c)})}
+
+function dq(raw,rd){
 qb.disabled=true;sb.disabled=true;se.textContent="Fetching...";
+se.className="status";
 try{
 var c=(raw||"").replace(/^(sh|sz|bj)/i,"").trim();
 if(!/^\d{6}$/.test(c)){se.textContent="Invalid stock code";qb.disabled=false;sb.disabled=false;return}
 se.textContent="Fetching K-line...";
-var d;try{d=await fk(c)}catch(e){se.textContent="Failed: "+e.message;qb.disabled=false;sb.disabled=false;return}
+fetchData(c).then(function(d){
 var g=gbd(d),ds=Object.keys(g).sort();
 if(!ds.length){se.textContent="No data found";qb.disabled=false;sb.disabled=false;return}
 var dt=rd?ds[Math.floor(Math.random()*ds.length)]:ds[ds.length-1];
@@ -162,9 +199,10 @@ yAxis:[{scale:true,gridIndex:0,axisLabel:{color:"#5a6a7a",fontSize:11},splitLine
 dataZoom:[{type:"inside",xAxisIndex:[0,1]}],
 series:[{name:"K-line",type:"candlestick",data:ohlc,xAxisIndex:0,yAxisIndex:0,itemStyle:{color:"#ef4444",color0:"#22c55e",borderColor:"#ef4444",borderColor0:"#22c55e"},markLine:{silent:true,symbol:"none",lineStyle:{color:"#3b82f6",type:"dashed",width:1},data:[{type:"average",label:{formatter:"Avg: {c}",color:"#3b82f6",fontSize:11,position:"insideEndTop"}}]}},{name:"Volume",type:"bar",data:vols,xAxisIndex:1,yAxisIndex:1,itemStyle:{color:function(p){return bars[p.dataIndex].close>=bars[p.dataIndex].open?"rgba(239,68,68,0.6)":"rgba(34,197,94,0.6)"}}}]
 },true);
-se.textContent=dt+" ("+b.length+" bars)";
-}catch(e){se.textContent="Error: "+e.message}
-finally{qb.disabled=false;sb.disabled=false}
+se.textContent=dt+" ("+b.length+" bars)";se.className="status success";
+}).catch(function(e){se.textContent="Failed: "+e.message;se.className="status error";qb.disabled=false;sb.disabled=false});
+}catch(e){se.textContent="Error: "+e.message;se.className="status error";qb.disabled=false;sb.disabled=false}
+finally{setTimeout(function(){qb.disabled=false;sb.disabled=false},500)}
 }
 
 // Events
