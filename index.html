@@ -2,114 +2,234 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>A-Share K-line Trainer</title>
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif;background:#0f1923;color:#e0e6ed;min-height:100vh}
-.container{max-width:1100px;margin:0 auto;padding:20px 16px}
+.container{max-width:1200px;margin:0 auto;padding:20px 16px}
 header{display:flex;align-items:center;gap:14px;padding:20px 0 10px;border-bottom:1px solid #1e2d3d}
 .logo{width:40px;height:40px;background:linear-gradient(135deg,#f39c12,#e74c3c);border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;color:#fff;flex-shrink:0}
 h1{font-size:22px;font-weight:600;letter-spacing:1px}
 h1 small{font-size:13px;font-weight:400;color:#7f8c9b;margin-left:10px}
 .search-section{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px;align-items:center}
 label{color:#9aaec2;font-size:14px}
-input{flex:0 1 160px;padding:10px 14px;border:1px solid #2a3a4a;border-radius:8px;background:#162230;color:#e0e6ed;font-size:16px;letter-spacing:1px;outline:none;transition:border-color .25s}
+input{flex:0 1 140px;padding:10px 14px;border:1px solid #2a3a4a;border-radius:8px;background:#162230;color:#e0e6ed;font-size:16px;letter-spacing:1px;outline:none;transition:border-color .25s}
 input:focus{border-color:#3b82f6}
 input::placeholder{color:#4a5a6a;font-size:13px}
 .btn{padding:10px 22px;border:none;border-radius:8px;font-size:14px;cursor:pointer;transition:all .2s;white-space:nowrap;font-weight:500}
 .btn:active{transform:scale(.96)}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
 .btn-primary{background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff}
-.btn-primary:hover{background:linear-gradient(135deg,#60a5fa,#3b82f6)}
-.btn-primary:disabled,.btn-shuffle:disabled{opacity:.5;cursor:not-allowed}
-.btn-shuffle{background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff}
-.btn-shuffle:hover{background:linear-gradient(135deg,#fbbf24,#f59e0b)}
+.btn-primary:hover:not(:disabled){background:linear-gradient(135deg,#60a5fa,#3b82f6)}
+.btn-warn{background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff}
+.btn-warn:hover:not(:disabled){background:linear-gradient(135deg,#fbbf24,#f59e0b)}
+.btn-buy{background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;font-size:16px;padding:12px 32px;min-width:90px}
+.btn-buy:hover:not(:disabled){background:linear-gradient(135deg,#f87171,#ef4444)}
+.btn-sell{background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;font-size:16px;padding:12px 32px;min-width:90px}
+.btn-sell:hover:not(:disabled){background:linear-gradient(135deg,#4ade80,#22c55e)}
+.btn-next{background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;font-size:15px;padding:12px 28px}
+.btn-next:hover:not(:disabled){background:linear-gradient(135deg,#818cf8,#6366f1)}
+/* Mode tabs */
+.mode-tabs{display:flex;gap:0;margin-top:18px}
+.mode-tab{padding:10px 28px;border:1px solid #1e2d3d;background:#162230;color:#7f8c9b;font-size:14px;cursor:pointer;transition:all .2s}
+.mode-tab:first-child{border-radius:8px 0 0 8px}
+.mode-tab:last-child{border-radius:0 8px 8px 0}
+.mode-tab.active{background:#1e3a5f;color:#60a5fa;border-color:#3b82f6;font-weight:600}
+/* Info card */
 .info-card{display:none;margin-top:18px;padding:16px 20px;background:#162230;border:1px solid #1e2d3d;border-radius:12px;gap:20px;flex-wrap:wrap;align-items:center}
 .info-card.visible{display:flex}
 .info-item{display:flex;flex-direction:column;gap:2px}
-.label{font-size:11px;color:#5a6a7a;text-transform:uppercase;letter-spacing:.5px}
-.value{font-size:16px;font-weight:600}
+.ilabel{font-size:11px;color:#5a6a7a;text-transform:uppercase;letter-spacing:.5px}
+.ivalue{font-size:16px;font-weight:600}
 .code-highlight{color:#f59e0b}
 .up{color:#ef4444}
 .down{color:#22c55e}
 .amount{font-size:22px}
+/* Charts */
 .chart-wrapper{margin-top:18px;background:#0d1a26;border:1px solid #1e2d3d;border-radius:12px;padding:8px;position:relative}
-#chart{width:100%;height:560px}
+#chart,#chartTraining{width:100%;height:500px}
+/* Status */
 .status{margin-top:12px;font-size:13px;color:#7f8c9b;min-height:20px;text-align:center}
 .status.error{color:#ef4444}
 .status.success{color:#22c55e}
+/* Training layout */
+#trainingView{display:none}
+.train-layout{display:flex;gap:14px;margin-top:18px}
+.train-sidebar{width:260px;flex-shrink:0;background:#0d1a26;border:1px solid #1e2d3d;border-radius:12px;padding:12px}
+.train-sidebar h3{font-size:13px;color:#9aaec2;margin-bottom:10px;font-weight:500}
+#dailyChart{width:100%;height:420px}
+.train-main{flex:1;min-width:0}
+.train-info{display:flex;flex-wrap:wrap;gap:16px;padding:12px 16px;background:#162230;border:1px solid #1e2d3d;border-radius:12px;margin-bottom:14px;align-items:center}
+.tinfo{display:flex;flex-direction:column;gap:2px}
+/* Control bar */
+.control-bar{display:flex;gap:12px;align-items:center;justify-content:center;padding:16px 0;flex-wrap:wrap}
+.control-group{display:flex;gap:8px;align-items:center}
+.timer-badge{font-size:12px;color:#7f8c9b;background:#162230;padding:4px 10px;border-radius:6px}
+.score-display{font-size:18px;font-weight:700}
+.score-display.win{color:#22c55e}
+.score-display.lose{color:#ef4444}
+.score-display.pass{color:#f59e0b}
+/* Result overlay */
+.result-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100;justify-content:center;align-items:center}
+.result-overlay.show{display:flex}
+.result-card{background:#162230;border:2px solid #1e2d3d;border-radius:16px;padding:32px 40px;text-align:center;max-width:420px;width:90%}
+.result-card h2{font-size:32px;margin-bottom:16px}
+.result-card .score{font-size:56px;font-weight:800;margin:12px 0}
+.result-detail{font-size:14px;color:#7f8c9b;line-height:1.8;margin-bottom:20px}
 footer{margin-top:40px;padding:16px 0;border-top:1px solid #1e2d3d;text-align:center;font-size:12px;color:#4a5a6a}
 footer a{color:#5a7a9a;text-decoration:none}
 footer a:hover{color:#3b82f6}
-@media(max-width:640px){
-.container{padding:12px 10px}
-header h1{font-size:17px}
-header h1 small{display:block;margin-left:0;margin-top:2px}
-input{flex:1 1 100%}
-#chart{height:400px}
-.info-card{padding:12px 14px;gap:12px}
-.info-item .value.amount{font-size:18px}
+@media(max-width:840px){
+.train-layout{flex-direction:column}
+.train-sidebar{width:100%}
+#dailyChart{height:240px}
+#chart,#chartTraining{height:380px}
+.control-bar{gap:8px}
+.control-bar .btn{font-size:13px;padding:8px 16px}
 }
 </style>
 </head>
 <body>
 <div class="container">
-<header><div class="logo">K</div><h1>A-Share K-line Trainer <small>5-min Random Backtest</small></h1></header>
+<header><div class="logo">K</div><h1>A-Share K-line Trainer <small>5-min Training Simulator</small></h1></header>
 
 <div class="search-section">
 <label for="codeInput">Stock Code</label>
 <input id="codeInput" placeholder="e.g. 600036" maxlength="6" autofocus>
 <button class="btn btn-primary" id="queryBtn">Query</button>
-<button class="btn btn-shuffle" id="shuffleBtn">Random Day</button>
+<button class="btn btn-warn" id="shuffleBtn">Random Day</button>
 </div>
 
+<!-- Mode tabs -->
+<div class="mode-tabs">
+<button class="mode-tab active" data-mode="query" id="tabQuery">Query Mode</button>
+<button class="mode-tab" data-mode="training" id="tabTraining">Training Mode</button>
+</div>
+
+<!-- Query Mode -->
+<div id="queryView">
 <div class="info-card" id="infoCard">
-<div class="info-item"><span class="label">Stock</span><span class="value code-highlight" id="stockName">--</span></div>
-<div class="info-item"><span class="label">Date</span><span class="value" id="tradeDate">--</span></div>
-<div class="info-item"><span class="label">Open</span><span class="value" id="openVal">--</span></div>
-<div class="info-item"><span class="label">Close</span><span class="value" id="closeVal">--</span></div>
-<div class="info-item"><span class="label">High</span><span class="value up" id="highVal">--</span></div>
-<div class="info-item"><span class="label">Low</span><span class="value down" id="lowVal">--</span></div>
-<div class="info-item"><span class="label">Change</span><span class="value" id="changeVal">--</span></div>
-<div class="info-item"><span class="label">Volume</span><span class="value amount" id="amountVal">--</span></div>
+<div class="info-item"><span class="ilabel">Stock</span><span class="ivalue code-highlight" id="stockName">--</span></div>
+<div class="info-item"><span class="ilabel">Date</span><span class="ivalue" id="tradeDate">--</span></div>
+<div class="info-item"><span class="ilabel">Open</span><span class="ivalue" id="openVal">--</span></div>
+<div class="info-item"><span class="ilabel">Close</span><span class="ivalue" id="closeVal">--</span></div>
+<div class="info-item"><span class="ilabel">High</span><span class="ivalue up" id="highVal">--</span></div>
+<div class="info-item"><span class="ilabel">Low</span><span class="ivalue down" id="lowVal">--</span></div>
+<div class="info-item"><span class="ilabel">Change</span><span class="ivalue" id="changeVal">--</span></div>
+<div class="info-item"><span class="ilabel">Volume</span><span class="ivalue amount" id="amountVal">--</span></div>
 </div>
-
 <div class="chart-wrapper"><div id="chart"></div></div>
 <div class="status" id="status">Enter a 6-digit stock code to begin...</div>
+</div>
+
+<!-- Training Mode -->
+<div id="trainingView">
+<div class="train-layout">
+<div class="train-sidebar">
+<h3>Daily K-line (15d)</h3>
+<div id="dailyChart"></div>
+</div>
+<div class="train-main">
+<div class="train-info" id="trainInfo">
+<div class="tinfo"><span class="ilabel">Stock</span><span class="ivalue code-highlight" id="tStockName">--</span></div>
+<div class="tinfo"><span class="ilabel">Date</span><span class="ivalue" id="tDate">--</span></div>
+<div class="tinfo"><span class="ilabel">Open</span><span class="ivalue" id="tOpen">--</span></div>
+<div class="tinfo"><span class="ilabel">Prev Close</span><span class="ivalue" id="tPrevClose">--</span></div>
+<div class="tinfo"><span class="ilabel">Progress</span><span class="ivalue" id="tProgress">0/0</span></div>
+<div class="tinfo"><span class="ilabel">Buy Score</span><span class="ivalue" id="tBuyScore">--</span></div>
+<div class="tinfo"><span class="ilabel">Sell Score</span><span class="ivalue" id="tSellScore">--</span></div>
+<div class="tinfo"><span class="ilabel">Total</span><span class="ivalue score-display" id="tScore">--</span></div>
+</div>
+<div class="chart-wrapper"><div id="chartTraining"></div></div>
+</div>
+</div>
+<div class="control-bar" id="controlBar">
+<button class="btn btn-buy" id="btnBuy" disabled>Buy</button>
+<button class="btn btn-sell" id="btnSell" disabled>Sell</button>
+<button class="btn btn-next" id="btnNext" disabled>Next (5s)</button>
+<span class="timer-badge" id="timerBadge">Auto: ON</span>
+<button class="btn btn-warn" id="btnReset" disabled style="display:none">New Round</button>
+</div>
+<div class="status" id="trainStatus">Select a stock and click Random Day to start training...</div>
+</div>
+
+<!-- Result overlay -->
+<div class="result-overlay" id="resultOverlay">
+<div class="result-card" id="resultCard"></div>
+</div>
 
 <footer>
-Data from <a href="https://push2his.eastmoney.com/" target="_blank" rel="noopener">EastMoney</a>
+Data from <a href="https://push2his.eastmoney.com/" target="_blank" rel="noopener">EastMoney</a> &amp; <a href="https://money.finance.sina.com.cn/" target="_blank" rel="noopener">Sina</a>
 | For educational purposes only
-| <a href="https://github.com/Mr-Lear/K-line-Trainer" target="_blank" rel="noopener">GitHub</a>
 </footer>
 </div>
 
 <script>
-// Config
+// ========== Config ==========
 var KLINE_API_EM="https://push2his.eastmoney.com/api/qt/stock/kline/get";
 var KLINE_API_SINA="https://money.finance.sina.com.cn/quotes_service/api/json_v2.php/CN_MarketData.getKLineData";
-var KLINE_LIMIT=5000;
 
-// Name map (fallback)
+// ========== State ==========
+var currentMode="query";
+var trainingData=null;       // current day 5-min bars
+var dailyBars=null;          // 15-day daily bars
+var trainIdx=0;              // current revealed candle index
+var hasBought=false,hasSold=false;
+var buyPrice=null,sellPrice=null,buyAtCandle=null,sellAtCandle=null;
+var autoTimer=null;
+var trainingActive=false;
+var trainingCode="";
+var mcQuery,mcTrain,mcDaily; // ECharts instances
+
+// ========== Name map ==========
 var NAMES={"600036":"CM Bank","600519":"Kweichow Moutai","002594":"BYD","000333":"Midea Group","300750":"CATL","601318":"Ping An","000001":"Ping An Bank","600900":"Yangtze Power","000858":"Wuliangye"};
 
-// DOM
-var ci=document.getElementById("codeInput"),qb=document.getElementById("queryBtn"),sb=document.getElementById("shuffleBtn");
+// ========== DOM refs ==========
+var ci=document.getElementById("codeInput");
+var qb=document.getElementById("queryBtn"),sb=document.getElementById("shuffleBtn");
 var ic=document.getElementById("infoCard"),se=document.getElementById("status");
 var sne=document.getElementById("stockName"),tde=document.getElementById("tradeDate");
-var ove=document.getElementById("openVal"),cve=document.getElementById("closeVal"),hve=document.getElementById("highVal"),lve=document.getElementById("lowVal"),chve=document.getElementById("changeVal"),ave=document.getElementById("amountVal");
+var ove=document.getElementById("openVal"),cve=document.getElementById("closeVal");
+var hve=document.getElementById("highVal"),lve=document.getElementById("lowVal");
+var chve=document.getElementById("changeVal"),ave=document.getElementById("amountVal");
 
-// ECharts
-var mc=echarts.init(document.getElementById("chart"),"dark");
-window.addEventListener("resize",function(){mc.resize()});
+var tStock=document.getElementById("tStockName"),tDate=document.getElementById("tDate");
+var tOpen=document.getElementById("tOpen"),tPrev=document.getElementById("tPrevClose");
+var tProg=document.getElementById("tProgress"),tScoreEl=document.getElementById("tScore");
+var btnBuy=document.getElementById("btnBuy"),btnSell=document.getElementById("btnSell");
+var btnNext=document.getElementById("btnNext"),btnReset=document.getElementById("btnReset");
+var timerBadge=document.getElementById("timerBadge");
+var trainStatus=document.getElementById("trainStatus");
+var resultOverlay=document.getElementById("resultOverlay");
+var resultCard=document.getElementById("resultCard");
+var trainingView=document.getElementById("trainingView");
+var queryView=document.getElementById("queryView");
 
-// Helpers
+// ========== ECharts init ==========
+var hasECharts=typeof echarts!=="undefined";
+if(hasECharts){
+  mcQuery=echarts.init(document.getElementById("chart"),"dark");
+  mcTrain=echarts.init(document.getElementById("chartTraining"),"dark");
+  mcDaily=echarts.init(document.getElementById("dailyChart"),"dark");
+  window.addEventListener("resize",function(){mcQuery.resize();mcTrain.resize();mcDaily.resize()});
+}else{
+  se.textContent="ECharts CDN not loaded. Try: python -m http.server 8000 then open http://localhost:8000";
+  se.className="status error";
+  trainStatus.textContent="ECharts CDN not loaded. Use HTTP server instead of file://";
+  trainStatus.className="status error";
+}
+
+// ========== Helpers ==========
 function fmtDate(d){return d.getFullYear()+("0"+(d.getMonth()+1)).slice(-2)+("0"+d.getDate()).slice(-2)}
-function gbd(d){var m={};for(var i=0;i<d.length;i++){var dt=d[i].time.slice(0,10);if(!m[dt])m[dt]=[];m[dt].push(d[i])}return m}
 function fm(n){if(n>=1e8)return(n/1e8).toFixed(2)+"B";if(n>=1e4)return(n/1e4).toFixed(0)+"W";return n.toFixed(0)}
+function gbd(d){var m={};for(var i=0;i<d.length;i++){var dt=d[i].time.slice(0,10);if(!m[dt])m[dt]=[];m[dt].push(d[i])}return m}
 
-// JSONP helper - bypasses CORS by loading a script tag
+// ========== JSONP ==========
 function jsonp(url,cbParam,timeout){
   return new Promise(function(resolve,reject){
     var cb="_cb_"+Math.random().toString(36).slice(2,10);
@@ -125,94 +245,319 @@ function jsonp(url,cbParam,timeout){
   });
 }
 
-// Fetch from EastMoney (JSONP)
+// ========== Fetch 5-min K-line ==========
+function parseEM5m(j){
+  if(j&&j.data&&j.data.klines&&j.data.klines.length)
+    return j.data.klines.map(function(k){var p=k.split(",");return{time:p[0],open:+p[1],close:+p[2],high:+p[3],low:+p[4],volume:+p[5]||0};});
+  throw new Error("EM empty");
+}
 function fk(c){
+  var m=/^6/.test(c)?1:0,now=new Date(),beg=new Date(now);
+  beg.setFullYear(beg.getFullYear()-3);
+  return jsonp(KLINE_API_EM+"?secid="+m+"."+c+"&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61&klt=5&fqt=1&beg="+fmtDate(beg)+"&end="+fmtDate(now)+"&lmt=8000","cb",20000).then(parseEM5m);
+}
+
+// ========== Fetch daily K-line (15 days) ==========
+function fkDaily(c){
   var m=/^6/.test(c)?1:0;
-  var now=new Date();
-  var beg=new Date(now);beg.setFullYear(beg.getFullYear()-3);
-  var u=KLINE_API_EM+"?secid="+m+"."+c+"&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61&klt=5&fqt=1&beg="+fmtDate(beg)+"&end="+fmtDate(now)+"&lmt="+KLINE_LIMIT;
-  return jsonp(u,"cb",20000).then(function(j){
-    if(j&&j.data&&j.data.klines&&j.data.klines.length)return j.data.klines.map(function(k){var p=k.split(",");return{time:p[0],open:+p[1],close:+p[2],high:+p[3],low:+p[4],volume:+p[5]||0};});
-    throw new Error("EM empty");
+  return jsonp(KLINE_API_EM+"?secid="+m+"."+c+"&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61&klt=101&fqt=1&lmt=20","cb",15000).then(function(j){
+    if(j&&j.data&&j.data.klines&&j.data.klines.length)
+      return j.data.klines.slice(-15).map(function(k){var p=k.split(",");return{date:p[0],open:+p[1],close:+p[2],high:+p[3],low:+p[4],volume:+p[5]||0};});
+    throw new Error("Daily empty");
   });
 }
 
-// Fallback: Sina Finance API (JSONP)
+// ========== Fetch 5-min (Sina fallback) ==========
 function fkSina(c){
   var prefix=/^6/.test(c)?"sh":"sz";
-  var u=KLINE_API_SINA+"?symbol="+prefix+c+"&scale=5&ma=no&datalen=5000";
-  return jsonp(u,"callback",20000).then(function(j){
+  return jsonp(KLINE_API_SINA+"?symbol="+prefix+c+"&scale=5&ma=no&datalen=5000","callback",20000).then(function(j){
     if(Array.isArray(j)&&j.length)return j.map(function(k){return{time:k.day,open:+k.open,close:+k.close,high:+k.high,low:+k.low,volume:+k.volume||0};});
     throw new Error("Sina empty");
   });
 }
 
-// Try EastMoney first, fallback to Sina
-function fetchData(c){return fk(c).catch(function(){return fkSina(c)})}
+function fetch5m(c){return fk(c).catch(function(){return fkSina(c)})}
 
+// ========== Query Mode ==========
 function dq(raw,rd){
-qb.disabled=true;sb.disabled=true;se.textContent="Fetching...";
-se.className="status";
-try{
-var c=(raw||"").replace(/^(sh|sz|bj)/i,"").trim();
-if(!/^\d{6}$/.test(c)){se.textContent="Invalid stock code";qb.disabled=false;sb.disabled=false;return}
-se.textContent="Fetching K-line...";
-fetchData(c).then(function(d){
-var g=gbd(d),ds=Object.keys(g).sort();
-if(!ds.length){se.textContent="No data found";qb.disabled=false;sb.disabled=false;return}
-var dt=rd?ds[Math.floor(Math.random()*ds.length)]:ds[ds.length-1];
-var b=g[dt],nm=NAMES[c]||c;
-
-// Info card
-var op=b[0].open,cl=b[b.length-1].close,hi=0,lo=Infinity,tv=0;
-for(var i=0;i<b.length;i++){if(b[i].high>hi)hi=b[i].high;if(b[i].low<lo)lo=b[i].low;tv+=b[i].volume}
-var cp=(cl-op)/op*100,cls=cp>=0?"up":"down";
-sne.textContent=nm+" ("+c+")";tde.textContent=dt;
-ove.textContent=op.toFixed(2);cve.textContent=cl.toFixed(2);hve.textContent=hi.toFixed(2);lve.textContent=lo.toFixed(2);
-chve.textContent=(cp>=0?"+":"")+cp.toFixed(2)+"%";chve.className="value "+cls;
-ave.textContent=fm(tv);ic.classList.add("visible");
-
-// Chart
-var times=[],ohlc=[],vols=[];
-for(var i=0;i<b.length;i++){times.push(b[i].time.slice(11,16));ohlc.push([b[i].open,b[i].close,b[i].low,b[i].high]);vols.push(b[i].volume)}
-var bars=b;
-mc.setOption({
-backgroundColor:"transparent",
-tooltip:{trigger:"axis",axisPointer:{type:"cross"},backgroundColor:"#1a2d3d",borderColor:"#2a4a6a",textStyle:{color:"#e0e6ed",fontSize:12},
-formatter:function(p){
-var k=null;for(var j=0;j<p.length;j++){if(p[j].seriesName==="K-line"){k=p[j];break}}if(!k)return"";
-var i=k.dataIndex,br=bars[i];
-var color=br.close>=br.open?"#ef4444":"#22c55e";
-var sign=br.close>=br.open?"+":"";
-var chg=((br.close-br.open)/br.open*100);
-return"<div style=font-weight:600;margin-bottom:4px>"+br.time+"</div>"
-+"<div>Open: <span style=color:"+color+">"+br.open.toFixed(2)+"</span></div>"
-+"<div>Close: <span style=color:"+color+">"+br.close.toFixed(2)+"</span></div>"
-+"<div>High: <span style=color:#60a5fa>"+br.high.toFixed(2)+"</span></div>"
-+"<div>Low: <span style=color:#60a5fa>"+br.low.toFixed(2)+"</span></div>"
-+"<div>Vol: "+fm(br.volume)+"</div>"
-+"<div>Change: <span style=color:"+color+">"+sign+chg.toFixed(2)+"%</span></div>";
-}},
-grid:[{left:"6%",right:"6%",top:50,height:"58%"},{left:"6%",right:"6%",top:"78%",height:"14%"}],
-xAxis:[{type:"category",data:times,boundaryGap:true,axisLine:{lineStyle:{color:"#1e2d3d"}},axisLabel:{color:"#5a6a7a",fontSize:11,interval:Math.max(0,Math.floor(times.length/8)-1)},splitLine:{show:false},gridIndex:0},{type:"category",data:times,axisLine:{show:false},axisLabel:{show:false},gridIndex:1}],
-yAxis:[{scale:true,gridIndex:0,axisLabel:{color:"#5a6a7a",fontSize:11},splitLine:{lineStyle:{color:"#1a2a3a",type:"dashed"}}},{scale:true,gridIndex:1,axisLabel:{color:"#5a6a7a",fontSize:10},axisLine:{show:false}}],
-dataZoom:[{type:"inside",xAxisIndex:[0,1]}],
-series:[{name:"K-line",type:"candlestick",data:ohlc,xAxisIndex:0,yAxisIndex:0,itemStyle:{color:"#ef4444",color0:"#22c55e",borderColor:"#ef4444",borderColor0:"#22c55e"},markLine:{silent:true,symbol:"none",lineStyle:{color:"#3b82f6",type:"dashed",width:1},data:[{type:"average",label:{formatter:"Avg: {c}",color:"#3b82f6",fontSize:11,position:"insideEndTop"}}]}},{name:"Volume",type:"bar",data:vols,xAxisIndex:1,yAxisIndex:1,itemStyle:{color:function(p){return bars[p.dataIndex].close>=bars[p.dataIndex].open?"rgba(239,68,68,0.6)":"rgba(34,197,94,0.6)"}}}]
-},true);
-se.textContent=dt+" ("+b.length+" bars)";se.className="status success";
-}).catch(function(e){se.textContent="Failed: "+e.message;se.className="status error";qb.disabled=false;sb.disabled=false});
-}catch(e){se.textContent="Error: "+e.message;se.className="status error";qb.disabled=false;sb.disabled=false}
-finally{setTimeout(function(){qb.disabled=false;sb.disabled=false},500)}
+  qb.disabled=true;sb.disabled=true;se.textContent="Fetching...";se.className="status";
+  var c=(raw||"").replace(/^(sh|sz|bj)/i,"").trim();
+  if(!/^\d{6}$/.test(c)){se.textContent="Invalid stock code";qb.disabled=false;sb.disabled=false;return}
+  se.textContent="Fetching K-line...";
+  fetch5m(c).then(function(d){
+    var g=gbd(d),ds=Object.keys(g).sort();
+    if(!ds.length){se.textContent="No data found";qb.disabled=false;sb.disabled=false;return}
+    var dt=rd?ds[Math.floor(Math.random()*ds.length)]:ds[ds.length-1];
+    var b=g[dt],nm=NAMES[c]||c;
+    var op=b[0].open,cl=b[b.length-1].close,hi=0,lo=Infinity,tv=0;
+    for(var i=0;i<b.length;i++){if(b[i].high>hi)hi=b[i].high;if(b[i].low<lo)lo=b[i].low;tv+=b[i].volume}
+    var cp=(cl-op)/op*100,cls=cp>=0?"up":"down";
+    sne.textContent=nm+" ("+c+")";tde.textContent=dt;
+    ove.textContent=op.toFixed(2);cve.textContent=cl.toFixed(2);hve.textContent=hi.toFixed(2);lve.textContent=lo.toFixed(2);
+    chve.textContent=(cp>=0?"+":"")+cp.toFixed(2)+"%";chve.className="ivalue "+cls;
+    ave.textContent=fm(tv);ic.classList.add("visible");
+    var times=[],ohlc=[],vols=[];for(var i=0;i<b.length;i++){times.push(b[i].time.slice(11,16));ohlc.push([b[i].open,b[i].close,b[i].low,b[i].high]);vols.push(b[i].volume)}
+    var bars=b;
+    if(hasECharts)mcQuery.setOption({backgroundColor:"transparent",
+      tooltip:{trigger:"axis",axisPointer:{type:"cross"},backgroundColor:"#1a2d3d",borderColor:"#2a4a6a",textStyle:{color:"#e0e6ed",fontSize:12},
+        formatter:function(p){var k=null;for(var j=0;j<p.length;j++){if(p[j].seriesName==="K-line"){k=p[j];break}}if(!k)return"";var br=bars[k.dataIndex];var color=br.close>=br.open?"#ef4444":"#22c55e";var sign=br.close>=br.open?"+":"";var chg=((br.close-br.open)/br.open*100);return"<div style=font-weight:600>"+br.time+"</div><div>O:"+br.open.toFixed(2)+" C:"+br.close.toFixed(2)+" H:"+br.high.toFixed(2)+" L:"+br.low.toFixed(2)+" V:"+fm(br.volume)+" Chg:"+sign+chg.toFixed(2)+"%</div>"}},
+      grid:[{left:"6%",right:"6%",top:50,height:"62%"},{left:"6%",right:"6%",top:"80%",height:"12%"}],
+      xAxis:[{type:"category",data:times,boundaryGap:true,axisLine:{lineStyle:{color:"#1e2d3d"}},axisLabel:{color:"#5a6a7a",fontSize:10,interval:Math.max(0,Math.floor(times.length/10))},gridIndex:0},{type:"category",data:times,axisLine:{show:false},axisLabel:{show:false},gridIndex:1}],
+      yAxis:[{scale:true,gridIndex:0,axisLabel:{color:"#5a6a7a",fontSize:11},splitLine:{lineStyle:{color:"#1a2a3a"}}},{scale:true,gridIndex:1,axisLabel:{color:"#5a6a7a",fontSize:10}}],
+      dataZoom:[{type:"inside",xAxisIndex:[0,1]}],
+      series:[{name:"K-line",type:"candlestick",data:ohlc,xAxisIndex:0,yAxisIndex:0,itemStyle:{color:"#ef4444",color0:"#22c55e",borderColor:"#ef4444",borderColor0:"#22c55e"}},{name:"Volume",type:"bar",data:vols,xAxisIndex:1,yAxisIndex:1,itemStyle:{color:function(p){return bars[p.dataIndex].close>=bars[p.dataIndex].open?"rgba(239,68,68,0.5)":"rgba(34,197,94,0.5)"}}}]
+    },true);
+    se.textContent=dt+" ("+b.length+" bars)";se.className="status success";
+  }).catch(function(e){se.textContent="Failed: "+e.message;se.className="status error"})
+  .finally(function(){setTimeout(function(){qb.disabled=false;sb.disabled=false},500)});
 }
 
-// Events
-qb.onclick=function(){dq(ci.value.trim()||"600036",false)};
-sb.onclick=function(){dq(ci.value.trim()||"600036",true)};
+// ========== Training Mode ==========
+
+// render daily chart (static sidebar)
+function renderDailyChart(){
+  if(!hasECharts)return;
+  var times=[],o=[],c=[],h=[],l=[];
+  for(var i=0;i<dailyBars.length;i++){
+    var d=dailyBars[i];
+    times.push(d.date.slice(5));
+    o.push(d.open);c.push(d.close);h.push(d.high);l.push(d.low);
+  }
+  var m=Math.min.apply(null,l)*0.99,M=Math.max.apply(null,h)*1.01;
+  mcDaily.setOption({
+    tooltip:{trigger:"axis",formatter:function(p){var d=dailyBars[p[0].dataIndex];return d.date+"<br>O:"+d.open+" C:"+d.close+" H:"+d.high+" L:"+d.low+"<br>Vol:"+fm(d.volume)}},
+    grid:{left:55,right:10,top:10,bottom:30},
+    xAxis:{type:"category",data:times,axisLabel:{fontSize:9,color:"#5a6a7a"},axisLine:{lineStyle:{color:"#1e2d3d"}}},
+    yAxis:{type:"value",min:m,max:M,axisLabel:{fontSize:9,color:"#5a6a7a"},splitLine:{lineStyle:{color:"#1a2a3a"}}},
+    series:[{type:"candlestick",data:times.map(function(_,i){return[o[i],c[i],l[i],h[i]]}),itemStyle:{color:"#ef4444",color0:"#22c55e",borderColor:"#ef4444",borderColor0:"#22c55e"}}]
+  },true);
+}
+
+// render training chart (progressive reveal + mark lines)
+function renderTrainingChart(){
+  if(!hasECharts)return;
+  var b=trainingData;
+  var times=[],ohlc=[],vols=[],markLines={buy:null,sell:null};
+  for(var i=0;i<=trainIdx;i++){
+    times.push(b[i].time.slice(11,16));
+    ohlc.push([b[i].open,b[i].close,b[i].low,b[i].high]);
+    vols.push(b[i].volume);
+  }
+  // Mark lines for buy/sell
+  if(hasBought) markLines.buy={xAxis:buyAtCandle,lineStyle:{color:"#ef4444",type:"solid",width:2},label:{formatter:"B "+buyPrice.toFixed(2),color:"#ef4444",fontSize:12,position:"start"}};
+  if(hasSold) markLines.sell={xAxis:sellAtCandle,lineStyle:{color:"#22c55e",type:"solid",width:2},label:{formatter:"S "+sellPrice.toFixed(2),color:"#22c55e",fontSize:12,position:"start"}};
+  var mlData=[];if(markLines.buy)mlData.push(markLines.buy);if(markLines.sell)mlData.push(markLines.sell);
+  var last=b[Math.min(trainIdx,b.length-1)];
+  mcTrain.setOption({
+    tooltip:{trigger:"axis",axisPointer:{type:"cross"},backgroundColor:"#1a2d3d",borderColor:"#2a4a6a",textStyle:{color:"#e0e6ed",fontSize:12},
+      formatter:function(p){var k=null;for(var j=0;j<p.length;j++){if(p[j].seriesName==="K-line"){k=p[j];break}}if(!k)return"";var br=b[k.dataIndex];var color=br.close>=br.open?"#ef4444":"#22c55e";var sign=br.close>=br.open?"+":"";var chg=((br.close-br.open)/br.open*100);return"<div style=font-weight:600>"+br.time+"</div><div>O:"+br.open.toFixed(2)+" C:"+br.close.toFixed(2)+" H:"+br.high.toFixed(2)+" L:"+br.low.toFixed(2)+" V:"+fm(br.volume)+" Chg:"+sign+chg.toFixed(2)+"%</div>"}},
+    grid:[{left:"6%",right:"6%",top:60,height:"62%"},{left:"6%",right:"6%",top:"80%",height:"12%"}],
+    xAxis:[{type:"category",data:times,boundaryGap:true,axisLine:{lineStyle:{color:"#1e2d3d"}},axisLabel:{color:"#5a6a7a",fontSize:10,interval:Math.max(0,Math.floor(times.length/10))},gridIndex:0},{type:"category",data:times,axisLine:{show:false},axisLabel:{show:false},gridIndex:1}],
+    yAxis:[{scale:true,gridIndex:0,axisLabel:{color:"#5a6a7a",fontSize:11},splitLine:{lineStyle:{color:"#1a2a3a"}}},{scale:true,gridIndex:1,axisLabel:{color:"#5a6a7a",fontSize:10}}],
+    dataZoom:[{type:"inside",xAxisIndex:[0,1]}],
+    series:[
+      {name:"K-line",type:"candlestick",data:ohlc,xAxisIndex:0,yAxisIndex:0,itemStyle:{color:"#ef4444",color0:"#22c55e",borderColor:"#ef4444",borderColor0:"#22c55e"},
+        markLine:{silent:true,symbol:"none",data:mlData}},
+      {name:"Volume",type:"bar",data:vols,xAxisIndex:1,yAxisIndex:1,itemStyle:{color:function(p){var br=b[p.dataIndex];return br.close>=br.open?"rgba(239,68,68,0.5)":"rgba(34,197,94,0.5)"}}}
+    ]
+  },true);
+}
+
+// advance one candle
+function advanceCandle(){
+  if(!trainingActive)return;
+  trainIdx++;
+  renderTrainingChart();
+  updateTrainInfo();
+  if(trainIdx>=trainingData.length-1){endTraining()}else{resetTimer()}
+}
+
+// auto timer
+function resetTimer(){
+  clearInterval(autoTimer);
+  autoTimer=setInterval(advanceCandle,5000);
+  timerBadge.textContent="Auto: ON";
+}
+
+function pauseTimer(){
+  clearInterval(autoTimer);
+  autoTimer=null;
+  timerBadge.textContent="Auto: OFF";
+}
+
+// calculate independent buy/sell scores (-50 to 50 each)
+function calcBuyScore(){if(!hasBought)return 0;return Math.round(((dayHigh-buyPrice)/(dayHigh-dayLow))*100-50)}
+function calcSellScore(){if(!hasSold)return 0;return Math.round(((sellPrice-dayLow)/(dayHigh-dayLow))*100-50)}
+function calcTotalScore(){return calcBuyScore()+calcSellScore()}
+
+// update info bar
+function updateTrainInfo(){
+  tProg.textContent=(trainIdx+1)+"/"+trainingData.length;
+  var buySc=calcBuyScore(),sellSc=calcSellScore();
+  document.getElementById("tBuyScore").textContent=hasBought?(buySc>=0?"+":"")+buySc:"--";
+  document.getElementById("tSellScore").textContent=hasSold?(sellSc>=0?"+":"")+sellSc:"--";
+  showScore(buySc+sellSc);
+}
+
+// show score
+function showScore(score){
+  tScoreEl.textContent=score;
+  if(score>50)tScoreEl.className="ivalue score-display win";
+  else if(score>0)tScoreEl.className="ivalue score-display pass";
+  else tScoreEl.className="ivalue score-display lose";
+}
+
+// Start training with given day's bars
+function startTraining(bars,code,dt,daily){
+  trainingData=bars;
+  trainingCode=code;
+  dailyBars=daily;
+  trainIdx=0;
+  hasBought=false;hasSold=false;
+  buyPrice=null;sellPrice=null;buyAtCandle=null;sellAtCandle=null;
+  trainingActive=true;
+  // Calculate day stats
+  dayHigh=0;dayLow=Infinity;
+  for(var i=0;i<bars.length;i++){if(bars[i].high>dayHigh)dayHigh=bars[i].high;if(bars[i].low<dayLow)dayLow=bars[i].low}
+  var nm=NAMES[code]||code;
+  tStock.textContent=nm+" ("+code+")";tDate.textContent=dt;
+  tOpen.textContent=bars[0].open.toFixed(2);
+  // prev close: from daily data (last item before today)
+  var prevC=daily&&daily.length>=2?daily[daily.length-2].close:bars[0].open;
+  tPrev.textContent=prevC.toFixed(2);
+  tProg.textContent="1/"+bars.length;
+  tScoreEl.textContent="--";tScoreEl.className="ivalue score-display";
+  trainStatus.textContent="Training started - watch the candles...";trainStatus.className="status";
+  // Enable controls
+  btnBuy.disabled=false;
+  btnSell.disabled=false;btnSell.textContent="Sell";
+  btnNext.disabled=false;
+  btnReset.style.display="none";
+  renderDailyChart();
+  renderTrainingChart();
+  updateTrainInfo();
+  resetTimer();
+}
+var dayHigh=0,dayLow=0;
+
+// End training
+function endTraining(){
+  trainingActive=false;
+  pauseTimer();
+  btnBuy.disabled=true;btnSell.disabled=true;btnNext.disabled=true;
+  btnReset.style.display="inline-block";btnReset.disabled=false;
+  // Calculate final scores
+  var buySc=calcBuyScore(),sellSc=calcSellScore(),total=buySc+sellSc;
+  showScore(total);
+  trainStatus.textContent="Training complete. Score: "+total;trainStatus.className="status success";
+  // Build detail
+  var detail="";
+  if(hasBought)detail+="Buy @"+buyPrice.toFixed(2)+" -> Buy Score: "+(buySc>=0?"+":"")+buySc;
+  else detail+="No buy";
+  detail+="\n";
+  if(hasSold)detail+="Sell @"+sellPrice.toFixed(2)+" -> Sell Score: "+(sellSc>=0?"+":"")+sellSc;
+  else detail+="No sell";
+  detail+="\nDay Range: "+dayLow.toFixed(2)+" ~ "+dayHigh.toFixed(2);
+  // Result label
+  var resultLabel,resultColor;
+  if(total>50){resultLabel="EXCELLENT";resultColor="#f59e0b"}
+  else if(total>0){resultLabel="WIN";resultColor="#22c55e"}
+  else{resultLabel="LOSE";resultColor="#ef4444"}
+  resultCard.innerHTML='<h2 style="color:'+resultColor+'">'+resultLabel+'</h2>'
+    +'<div class="score" style="color:'+resultColor+'">'+(total>=0?"+":"")+total+'</div>'
+    +'<div class="result-detail">'+detail.replace(/\n/g,"<br>")+'</div>'
+    +'<button class="btn btn-primary" onclick="closeResult()">Close</button>';
+  resultOverlay.classList.add("show");
+}
+
+function closeResult(){resultOverlay.classList.remove("show")}
+
+// Buy action
+function doBuy(){
+  if(!trainingActive||hasBought)return;
+  hasBought=true;
+  buyPrice=trainingData[trainIdx].close;
+  buyAtCandle=trainIdx;
+  btnBuy.disabled=true;
+  renderTrainingChart();
+  updateTrainInfo();
+  trainStatus.textContent="Bought at "+buyPrice.toFixed(2)+" | Candle "+(trainIdx+1)+" | Buy Score: "+calcBuyScore();
+}
+
+// Sell action
+function doSell(){
+  if(!trainingActive||hasSold)return;
+  hasSold=true;
+  sellPrice=trainingData[trainIdx].close;
+  sellAtCandle=trainIdx;
+  btnSell.disabled=true;
+  renderTrainingChart();
+  updateTrainInfo();
+  trainStatus.textContent="Sold at "+sellPrice.toFixed(2)+" | Candle "+(trainIdx+1)+" | Sell Score: "+calcSellScore();
+}
+
+// ========== Initialize Training (fetch data + start) ==========
+var lastTrainingDay=null; // store the day selected for training
+function initTraining(code,rd){
+  if(trainingActive){pauseTimer()}
+  btnBuy.disabled=true;btnSell.disabled=true;btnNext.disabled=true;
+  trainStatus.textContent="Fetching data...";trainStatus.className="status";
+  var c=(code||"").replace(/^(sh|sz|bj)/i,"").trim();
+  if(!/^\d{6}$/.test(c)){trainStatus.textContent="Invalid stock code";return}
+  Promise.all([fetch5m(c),fkDaily(c)]).then(function(results){
+    var d=results[0],daily=results[1];
+    var g=gbd(d),ds=Object.keys(g).sort();
+    if(!ds.length){trainStatus.textContent="No 5-min data";return}
+    var dt=rd?ds[Math.floor(Math.random()*ds.length)]:ds[ds.length-1];
+    lastTrainingDay=dt;
+    var b=g[dt];
+    if(b.length<5){trainStatus.textContent="Insufficient candles for training";return}
+    startTraining(b,c,dt,daily);
+  }).catch(function(e){trainStatus.textContent="Data fetch failed: "+e.message;trainStatus.className="status error"});
+}
+
+// ========== Mode switching ==========
+document.getElementById("tabQuery").onclick=function(){
+  currentMode="query";
+  document.getElementById("tabQuery").classList.add("active");
+  document.getElementById("tabTraining").classList.remove("active");
+  queryView.style.display="block";
+  trainingView.style.display="none";
+  pauseTimer();
+  if(hasECharts)mcQuery.resize();
+};
+document.getElementById("tabTraining").onclick=function(){
+  currentMode="training";
+  document.getElementById("tabTraining").classList.add("active");
+  document.getElementById("tabQuery").classList.remove("active");
+  queryView.style.display="none";
+  trainingView.style.display="block";
+  if(hasECharts){mcTrain.resize();mcDaily.resize()}
+  // If not training, init with current code
+  if(!trainingActive){
+    var cd=ci.value.trim()||"600036";
+    initTraining(cd,true);
+  }
+};
+
+// ========== Button events ==========
+btnBuy.onclick=doBuy;
+btnSell.onclick=doSell;
+btnNext.onclick=function(){if(!trainingActive)return;pauseTimer();advanceCandle()};
+btnReset.onclick=function(){initTraining(trainingCode,true)};
+
+// Main buttons dispatch by mode
+qb.onclick=function(){var c=ci.value.trim()||"600036";if(currentMode==="training"){initTraining(c,false)}else{dq(c,false)}};
+sb.onclick=function(){var c=ci.value.trim()||"600036";if(currentMode==="training"){initTraining(c,true)}else{dq(c,true)}};
 ci.onkeydown=function(e){if(e.key==="Enter")qb.click()};
 ci.oninput=function(){ci.value=ci.value.replace(/\D/g,"").slice(0,6)};
 
-// Bootstrap
-ci.value="600036";dq("600036",true);
+// Click result overlay to close
+resultOverlay.onclick=function(e){if(e.target===resultOverlay)closeResult()};
+
+// ========== Bootstrap ==========
+ci.value="600036";
+dq("600036",true);
 </script>
 </body>
 </html>
